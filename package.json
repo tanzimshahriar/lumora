@@ -2,6 +2,9 @@
   "name": "netflix",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "db:migrate": "drizzle-kit generate:pg",
     "db:push": "drizzle-kit up:pg",
