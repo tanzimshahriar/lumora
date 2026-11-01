@@ -1,26 +1,12 @@
 {
-  "version": "5",
-  "dialect": "pg",
+  "version": "7",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1689329711788,
-      "tag": "0000_parched_mysterio",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1689332580644,
-      "tag": "0001_natural_loa",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1689335493319,
-      "tag": "0002_damp_kylun",
+      "version": "7",
+      "when": 1793499611220,
+      "tag": "0000_init",
       "breakpoints": true
     }
   ]

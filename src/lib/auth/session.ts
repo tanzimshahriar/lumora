@@ -1,32 +1,22 @@
-import { Session, getServerSession } from 'next-auth'
-import { eq } from 'drizzle-orm'
+import 'server-only'
 import { authOptions } from '@/lib/auth/auth-options'
-import { db } from '@/db'
-import { users } from '@/db/schema'
+import { getServerSession } from 'next-auth'
+import { redirect } from 'next/navigation'
+import { cache } from 'react'
 
-export const getSession = async () => {
-  const session = await getServerSession(authOptions)
-  return session
+export const getSession = cache(() => getServerSession(authOptions))
+
+export async function getCurrentUser() {
+  const session = await getSession()
+  return session?.user?.id ? session.user : null
 }
 
-export const getCurrentUser = async () => {
-  const session: (Session & { user: { id: any } }) | null =
-    await getServerSession(authOptions)
+export async function requireUser() {
+  const user = await getCurrentUser()
+  if (!user) redirect('/signin')
+  return user
+}
 
-  if (!session) {
-    return null
-  }
-
-  const [currentUser] = await db
-    .select({
-      userId: users.id,
-      email: users.email,
-      name: users.name,
-      image: users.image,
-      createdAt: users.created_at,
-    })
-    .from(users)
-    .where(eq(users.id, session.user.id))
-
-  return currentUser
+export async function redirectIfSignedIn() {
+  if (await getCurrentUser()) redirect('/browse')
 }

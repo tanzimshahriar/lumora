@@ -1,86 +1,74 @@
 import { db } from '@/db'
-import { DrizzleAdapter } from '@/lib/auth/drizzle-adapter'
+import { users } from '@/db/schema'
+import { compare } from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { users } from '@/db/schema'
-import { compare } from 'bcryptjs'
-import { v4 as uuidv4 } from 'uuid'
+import { z } from 'zod'
+import { DEMO_EMAIL } from '@/lib/site'
+
+const credentialsSchema = z.object({
+  email: z.email().transform((email) => email.toLowerCase()),
+  password: z.string().min(1),
+})
+
+async function getOrCreateDemoUser() {
+  await db
+    .insert(users)
+    .values({ id: crypto.randomUUID(), name: 'Guest', email: DEMO_EMAIL })
+    .onConflictDoNothing({ target: users.email })
+  const [user] = await db
+    .select({ id: users.id, name: users.name, email: users.email })
+    .from(users)
+    .where(eq(users.email, DEMO_EMAIL))
+  return user ?? null
+}
 
 export const authOptions: NextAuthOptions = {
-  adapter: DrizzleAdapter(db),
-  session: {
-    strategy: 'jwt',
-  },
+  session: { strategy: 'jwt' },
   secret: process.env.NEXTAUTH_SECRET,
-  pages: {
-    signIn: '/signin',
-  },
+  pages: { signIn: '/signin' },
   providers: [
     CredentialsProvider({
-      async authorize(credentials: any) {
-        if (!credentials?.username || !credentials.password) {
-          throw new Error('Sorry, please provide user credentials.')
-        }
-
-        const user = await db
-          .select({
-            id: users.id,
-            password: users.password,
-            name: users.name,
-            email: users.email,
-          })
-          .from(users)
-          .where(eq(users.email, credentials.username))
-
-        if (!user || !user[0]) {
-          throw new Error(
-            "Sorry, but we can't find an account with this email address.",
-          )
-        }
-
-        if (!(await compare(credentials.password, user[0].password || ''))) {
-          throw new Error('Invalid password.')
-        }
-
-        return {
-          id: user[0].id,
-          email: user[0].email,
-          name: user[0].name,
-          randomKey: uuidv4(),
-        }
-      },
+      id: 'credentials',
+      name: 'Email',
       credentials: {
-        email: {
-          label: 'Email',
-          type: 'email',
-          placeholder: 'example@example.com',
-        },
+        email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
+      async authorize(credentials) {
+        const parsed = credentialsSchema.safeParse(credentials)
+        if (!parsed.success) return null
+
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, parsed.data.email))
+          .limit(1)
+
+        // Same response for unknown email and wrong password, so the form
+        // can't be used to discover which emails have accounts.
+        if (!user?.password) return null
+        if (!(await compare(parsed.data.password, user.password))) return null
+
+        return { id: user.id, email: user.email, name: user.name }
+      },
+    }),
+    CredentialsProvider({
+      id: 'demo',
+      name: 'Guest',
+      credentials: {},
+      authorize: getOrCreateDemoUser,
     }),
   ],
   callbacks: {
-    session: ({ session, token }) => {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: token.id,
-          randomKey: token.randomKey,
-        },
-      }
-    },
-    jwt: ({ token, user }) => {
-      if (user) {
-        const u = user as unknown as any
-        return {
-          ...token,
-          id: u.id,
-          randomKey: u.randomKey,
-        }
-      }
+    jwt({ token, user }) {
+      if (user) token.id = user.id
       return token
+    },
+    session({ session, token }) {
+      if (token.id) session.user.id = token.id
+      return session
     },
   },
 }

@@ -1,0 +1,16 @@
+# Optional local database: `docker compose up -d`
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lumora
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql
+
+volumes:
+  pgdata:
