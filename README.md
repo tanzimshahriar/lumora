@@ -35,16 +35,37 @@ cp .env.example .env.local
 
 Set `DATABASE_URL` in `.env.local`. Anything that speaks Postgres works:
 
-| Provider    | Example `DATABASE_URL`                                                                          |
-| ----------- | ----------------------------------------------------------------------------------------------- |
-| Local       | `postgresql://postgres:postgres@localhost:5432/lumora`                                          |
-| Docker      | `docker compose up -d`, then use the local URL above                                            |
-| Neon        | `postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/db?sslmode=require`                  |
-| Supabase    | `postgresql://postgres.xxx:pass@aws-0-region.pooler.supabase.com:6543/postgres?sslmode=require` |
-| Railway/RDS | The connection string from your dashboard                                                       |
+| Provider    | Example `DATABASE_URL`                                                         |
+| ----------- | ------------------------------------------------------------------------------ |
+| Local       | `postgresql://postgres:postgres@localhost:5432/lumora`                         |
+| Docker      | `docker compose up -d`, then use the local URL above                           |
+| Neon        | `postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/db?sslmode=require` |
+| Supabase    | See [Using Supabase](#using-supabase) below                                    |
+| Railway/RDS | The connection string from your dashboard                                      |
 
-`POSTGRES_URL` is also accepted for backwards compatibility. On serverless
-hosts such as Vercel, use your provider's **pooled** connection string.
+`POSTGRES_URL` is also accepted, so the env var set by Vercel's Postgres and
+Supabase integrations works as-is. On serverless hosts such as Vercel, use your
+provider's **pooled** connection string. `sslmode=require` keeps libpq's meaning
+(encrypt the connection); use `sslmode=verify-full` with `sslrootcert` for
+strict certificate checks.
+
+#### Using Supabase
+
+The app talks to Supabase's Postgres directly through Drizzle, so it needs the
+database connection string, not the `NEXT_PUBLIC_SUPABASE_*` keys.
+
+1. In the Supabase dashboard, click **Connect**, then **Connection String**.
+2. Copy the **Session pooler** URI (port 5432, IPv4-friendly) for local
+   development and migrations. On Vercel, use the **Transaction pooler** URI
+   (port 6543).
+3. Replace `[YOUR-PASSWORD]` with your database password (Project Settings,
+   then Database, to reset it). URL-encode special characters, e.g. `@` → `%40`.
+4. Add `?sslmode=require` to the end and save it as `DATABASE_URL` in
+   `.env.local`.
+
+Migrations enable row-level security on every table. The app connects as the
+table owner, so it is unaffected, but Supabase's public REST API can't read the
+`users` table.
 
 Create the tables:
 

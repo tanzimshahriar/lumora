@@ -25,7 +25,7 @@ export const users = pgTable(
       .notNull(),
   },
   (user) => [uniqueIndex('users__email__idx').on(user.email)],
-)
+).enableRLS()
 
 export const watchlist = pgTable(
   'watchlist',
@@ -49,6 +49,6 @@ export const watchlist = pgTable(
     primaryKey({ columns: [item.userId, item.mediaType, item.mediaId] }),
     index('watchlist__user_created__idx').on(item.userId, item.createdAt),
   ],
-)
+).enableRLS()
 
 export type WatchlistItem = typeof watchlist.$inferSelect

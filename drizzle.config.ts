@@ -1,9 +1,10 @@
 import type { Config } from 'drizzle-kit'
 import { config } from 'dotenv'
+import { getDatabaseUrl } from './src/db/connection'
 
 config({ path: ['.env.local', '.env'], quiet: true })
 
-const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL
+const url = getDatabaseUrl()
 
 if (!url) {
   throw new Error('DATABASE_URL is missing. Copy .env.example to .env.local.')

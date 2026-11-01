@@ -1,0 +1,2 @@
+ALTER TABLE "users" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+ALTER TABLE "watchlist" ENABLE ROW LEVEL SECURITY;
